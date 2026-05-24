@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DatasetSummary } from "./types";
 import { FileSpreadsheet, BarChart2, Table, LogOut, AlertCircle, Sun, Moon } from "lucide-react";
 import UploadZone from "./components/UploadZone";
@@ -11,7 +11,13 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab ] = useState<"charts" | "table">("charts");
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+  }, [darkMode]);
 
   // Unload current dataset and return to file picker
   const handleResetData = () => {
@@ -28,12 +34,7 @@ export default function App() {
   };
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    setDarkMode(prev => !prev);
   };
 
   return (
