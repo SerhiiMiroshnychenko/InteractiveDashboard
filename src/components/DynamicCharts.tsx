@@ -463,12 +463,13 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
         </div>
 
         {/* Render area */}
-        <div className="w-full h-[450px]">
+        <div className="w-full" style={{ height: 450, minHeight: 450 }}>
           {chartData.length === 0 ? (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               <span className="text-xs italic">Очікування коректних даних... Оберіть вісь X та Y.</span>
             </div>
           ) : (
+            <div className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               {(() => {
                 const CommonGrid = () => <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />;
@@ -681,6 +682,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
                 }
               })()}
             </ResponsiveContainer>
+            </div>
           )}
         </div>
       </div>
