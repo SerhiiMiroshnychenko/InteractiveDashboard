@@ -207,7 +207,14 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const getSvgElement = (): SVGSVGElement | null => {
-    return chartRef.current?.querySelector(".recharts-wrapper svg.recharts-surface") ?? null;
+    const all = chartRef.current?.querySelectorAll<SVGSVGElement>("svg.recharts-surface") ?? [];
+    let best: SVGSVGElement | null = null;
+    let max = 0;
+    all.forEach(svg => {
+      const w = svg.getBoundingClientRect().width;
+      if (w > max) { max = w; best = svg; }
+    });
+    return best;
   };
 
   const downloadSvg = useCallback(() => {
