@@ -207,7 +207,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const downloadChart = useCallback(() => {
-    const svg = chartRef.current?.querySelector("svg.recharts-surface");
+    const svg = chartRef.current?.querySelector(".recharts-wrapper svg.recharts-surface");
     if (!svg) return;
 
     const serializer = new XMLSerializer();
