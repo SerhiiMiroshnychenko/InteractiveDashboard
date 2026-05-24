@@ -25,7 +25,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts";
-import { BarChart3, LineChart as LineIcon, AreaChart as AreaIcon, PieChart as PieIcon, Sliders, Palette, RefreshCw, BarChart4 } from "lucide-react";
+import { BarChart3, LineChart as LineIcon, AreaChart as AreaIcon, PieChart as PieIcon, Sliders, Palette, RefreshCw, BarChart4, Calendar } from "lucide-react";
 
 interface DynamicChartsProps {
   summary: DatasetSummary;
