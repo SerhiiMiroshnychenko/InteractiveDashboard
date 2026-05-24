@@ -234,38 +234,39 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
     const svg = getSvgElement();
     if (!svg) return;
 
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    const walker = document.createTreeWalker(clone, 4, null, false);
     const rect = svg.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 
-    const styleTags = svg.querySelectorAll("style, defs");
-    styleTags.forEach(el => {
-      clone.insertBefore(el.cloneNode(true), clone.firstChild);
-    });
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    const container = document.createElement("div");
+    container.style.position = "absolute";
+    container.style.left = "-9999px";
+    container.style.top = "0";
+    container.style.width = rect.width + "px";
+    container.style.height = rect.height + "px";
+    container.appendChild(clone);
+    document.body.appendChild(container);
 
-    const inlineStyles = (el: Element) => {
-      const computed = getComputedStyle(el);
-      const style = el.getAttribute("style") || "";
+    const walker = document.createTreeWalker(clone, 4, null, false);
+    do {
+      const el = walker.currentNode as Element;
+      const s = getComputedStyle(el);
       const props = [
         "fill", "stroke", "stroke-width", "font-size", "font-family",
-        "font-weight", "opacity", "text-anchor", "alignment-baseline",
-        "color", "letter-spacing",
+        "font-weight", "opacity", "text-anchor",
       ];
+      const style = el.getAttribute("style") || "";
       for (const p of props) {
-        const val = computed.getPropertyValue(p);
+        const val = s.getPropertyValue(p);
         if (val && val !== "none" && !style.includes(p)) {
           try { el.setAttribute(p, val); } catch {}
         }
       }
-    };
-
-    inlineStyles(clone);
-    while (walker.nextNode()) {
-      inlineStyles(walker.currentNode as Element);
-    }
+    } while (walker.nextNode());
 
     const svgText = new XMLSerializer().serializeToString(clone);
+    document.body.removeChild(container);
+
     const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const img = new Image();
@@ -288,6 +289,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
         URL.revokeObjectURL(a.href);
       });
     };
+    img.onerror = () => URL.revokeObjectURL(url);
     img.src = url;
   }, [summary.fileName, chartType]);
 
