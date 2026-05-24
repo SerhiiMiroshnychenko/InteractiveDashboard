@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { DatasetSummary, ChartType, AggregationType } from "../types";
+import { convertExcelSerialToDate, isExcelSerial } from "../utils/csvAnalyzer";
 import {
   ResponsiveContainer,
   BarChart,
@@ -55,6 +56,19 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
   const [groupByKey, setGroupByKey] = useState<string>("");
   const [aggregation, setAggregation] = useState<AggregationType>("sum");
   const [colorScheme, setColorScheme] = useState<string>("cosmic");
+  const [dateOverrideKeys, setDateOverrideKeys] = useState<Set<string>>(new Set());
+
+  const toggleDateOverride = useCallback((colName: string) => {
+    setDateOverrideKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(colName)) {
+        next.delete(colName);
+      } else {
+        next.add(colName);
+      }
+      return next;
+    });
+  }, []);
 
   // Set X-axis default intelligently if it's currently empty
   useState(() => {
@@ -73,6 +87,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
     setGroupByKey("");
     setAggregation("sum");
     setChartType("bar");
+    setDateOverrideKeys(new Set());
   };
 
   /**
@@ -92,6 +107,14 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
       return isNaN(n) ? 0 : n;
     };
 
+    const getAxisValue = (obj: any, key: string): string => {
+      const raw = obj[key];
+      if (dateOverrideKeys.has(key) && isExcelSerial(raw)) {
+        return convertExcelSerialToDate(raw);
+      }
+      return String(raw ?? "Пусто");
+    };
+
     // If GroupBy is active, we group in nesting structure
     if (groupByKey && groupByKey !== xAxisKey) {
       // Create nested grouping maps: XValue -> GroupValue -> list of records
@@ -99,8 +122,8 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
       const uniqueGroupKeys = new Set<string>();
 
       rawRecords.forEach(row => {
-        const xVal = String(row[xAxisKey] ?? "Пусто");
-        const gVal = String(row[groupByKey] ?? "Інше");
+        const xVal = getAxisValue(row, xAxisKey);
+        const gVal = getAxisValue(row, groupByKey);
         uniqueGroupKeys.add(gVal);
 
         if (!xGroupMap[xVal]) {
@@ -146,7 +169,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
       // Basic flat X-Axis group aggregation: XValue -> list of records
       const xMap: Record<string, any[]> = {};
       rawRecords.forEach(row => {
-        const xVal = String(row[xAxisKey] ?? "Пусто");
+        const xVal = getAxisValue(row, xAxisKey);
         if (!xMap[xVal]) {
           xMap[xVal] = [];
         }
@@ -179,7 +202,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
         };
       });
     }
-  }, [summary.records, xAxisKey, yAxisKey, groupByKey, aggregation]);
+  }, [summary.records, xAxisKey, yAxisKey, groupByKey, aggregation, dateOverrideKeys]);
 
   // Derive unique series labels when grouping is active
   const dynamicSeriesKeys = useMemo(() => {
@@ -293,17 +316,31 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
           <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
             Вісь X (Категорія / Дата)
           </label>
-          <select
-            value={xAxisKey}
-            onChange={(e) => setXAxisKey(e.target.value)}
-            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 transition-shadow cursor-pointer"
-          >
-            {summary.columns.map(c => (
-              <option key={c.name} value={c.name}>
-                {c.name} ({c.type})
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2 items-start">
+            <select
+              value={xAxisKey}
+              onChange={(e) => setXAxisKey(e.target.value)}
+              className="flex-1 text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 transition-shadow cursor-pointer"
+            >
+              {summary.columns.map(c => (
+                <option key={c.name} value={c.name}>
+                  {c.name} ({c.type})
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => toggleDateOverride(xAxisKey)}
+              className={`shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold border cursor-pointer transition-all ${
+                dateOverrideKeys.has(xAxisKey)
+                  ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 ring-1 ring-amber-400"
+                  : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700 hover:text-amber-600 hover:border-amber-300"
+              }`}
+              title="Позначити як дату"
+            >
+              <Calendar className="w-3 h-3" />
+              <span>Дата</span>
+            </button>
+          </div>
         </div>
 
         {/* 3. Y Axis Config */}
@@ -311,23 +348,37 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
           <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
             Вісь Y (Числовий показник)
           </label>
-          <select
-            value={yAxisKey}
-            onChange={(e) => setYAxisKey(e.target.value)}
-            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 transition-shadow cursor-pointer"
-          >
-            {numericColumns.map(c => (
-              <option key={c.name} value={c.name}>
-                {c.name} ({c.type})
-              </option>
-            ))}
-            {/* Fallback to non-numeric if somehow none are found */}
-            {numericColumns.length === 0 && summary.columns.map(c => (
-              <option key={c.name} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2 items-start">
+            <select
+              value={yAxisKey}
+              onChange={(e) => setYAxisKey(e.target.value)}
+              className="flex-1 text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 transition-shadow cursor-pointer"
+            >
+              {numericColumns.map(c => (
+                <option key={c.name} value={c.name}>
+                  {c.name} ({c.type})
+                </option>
+              ))}
+              {/* Fallback to non-numeric if somehow none are found */}
+              {numericColumns.length === 0 && summary.columns.map(c => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => toggleDateOverride(yAxisKey)}
+              className={`shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold border cursor-pointer transition-all ${
+                dateOverrideKeys.has(yAxisKey)
+                  ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 ring-1 ring-amber-400"
+                  : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700 hover:text-amber-600 hover:border-amber-300"
+              }`}
+              title="Позначити як дату"
+            >
+              <Calendar className="w-3 h-3" />
+              <span>Дата</span>
+            </button>
+          </div>
         </div>
 
         {/* 4. GroupBy (optional) */}

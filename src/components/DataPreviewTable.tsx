@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { DatasetSummary, ColumnDataType } from "../types";
 import { ChevronDown, ChevronUp, Search, Calendar, ChevronLeft, ChevronRight, Hash, Quote, ToggleLeft, Binary, FileText } from "lucide-react";
-import { convertExcelSerialToDate, isExcelSerial } from "../utils/csvAnalyzer";
 
 interface DataPreviewTableProps {
   summary: DatasetSummary;
@@ -13,55 +12,19 @@ export default function DataPreviewTable({ summary }: DataPreviewTableProps) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [dateOverrides, setDateOverrides] = useState<Set<string>>(new Set());
-
-  const toggleDateOverride = useCallback((colName: string) => {
-    setDateOverrides(prev => {
-      const next = new Set(prev);
-      if (next.has(colName)) {
-        next.delete(colName);
-      } else {
-        next.add(colName);
-      }
-      return next;
-    });
-  }, []);
 
   // Render icons for specific data types
-  const renderDataTypeBadge = (type: ColumnDataType, colName: string) => {
-    const isDate = dateOverrides.has(colName);
-    const base = "inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded font-semibold border cursor-pointer transition-all";
-
-    if (isDate) {
-      return (
-        <span
-          onClick={() => toggleDateOverride(colName)}
-          className={`${base} bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-100 dark:border-amber-900/40 ring-1 ring-amber-400`}
-          title="Натисніть щоб прибрати позначку дати"
-        >
-          <Calendar className="w-2.5 h-2.5" /> Дата
-        </span>
-      );
-    }
-
+  const renderDataTypeBadge = (type: ColumnDataType) => {
     switch (type) {
       case "numeric":
         return (
-          <span
-            onClick={() => toggleDateOverride(colName)}
-            className={`${base} bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60`}
-            title="Натисніть щоб позначити як дату"
-          >
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] rounded font-semibold border border-emerald-100 dark:border-emerald-900/40">
             <Hash className="w-2.5 h-2.5" /> Число
           </span>
         );
       case "categorical":
         return (
-          <span
-            onClick={() => toggleDateOverride(colName)}
-            className={`${base} bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/60`}
-            title="Натисніть щоб позначити як дату"
-          >
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 text-[10px] rounded font-semibold border border-blue-100 dark:border-blue-900/40">
             <Quote className="w-2.5 h-2.5" /> Категорія
           </span>
         );
@@ -222,7 +185,7 @@ export default function DataPreviewTable({ summary }: DataPreviewTableProps) {
                         )}
                       </span>
                     </div>
-                    {renderDataTypeBadge(col.type, col.name)}
+                    {renderDataTypeBadge(col.type)}
                   </div>
                 </th>
               ))}
@@ -241,8 +204,6 @@ export default function DataPreviewTable({ summary }: DataPreviewTableProps) {
                     
                     if (rawVal === null || rawVal === undefined || rawVal === "") {
                       displayVal = <span className="text-slate-300 dark:text-slate-600 italic">null</span>;
-                    } else if (dateOverrides.has(col.name) && isExcelSerial(rawVal)) {
-                      displayVal = <span className="text-amber-600 dark:text-amber-400">{convertExcelSerialToDate(rawVal)}</span>;
                     } else if (typeof rawVal === "boolean") {
                       displayVal = rawVal ? "так/true" : "ні/false";
                     } else if (col.type === "numeric") {
