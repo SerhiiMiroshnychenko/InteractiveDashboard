@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
-import { Upload, FileSpreadsheet, Sparkles, HelpCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles } from "lucide-react";
 import { DatasetSummary } from "../types";
-import { parseCsvString, SAMPLE_DATASETS } from "../utils/csvAnalyzer";
+import { parseCsvString } from "../utils/csvAnalyzer";
 
 interface UploadZoneProps {
   onDataParsed: (summary: DatasetSummary) => void;
@@ -74,25 +74,6 @@ export default function UploadZone({
     }
   };
 
-  const loadSampleDataset = async (sampleId: string) => {
-    setIsLoading(true);
-    setError(null);
-    const sample = SAMPLE_DATASETS.find((s) => s.id === sampleId);
-    if (!sample) return;
-
-    try {
-      // Simulate slight processing for smooth visuals
-      setTimeout(async () => {
-        const fakeBlobSize = sample.csv.length;
-        const result = await parseCsvString(sample.csv, `${sample.id}_data.csv`, fakeBlobSize);
-        onDataParsed(result);
-      }, 500);
-    } catch (err: any) {
-      setError(`Не вдалося завантажити приклад: ${err.message}`);
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div id="upload-zone-container" className="max-w-4xl mx-auto space-y-8">
       {/* Hero Welcome banner */}
@@ -155,39 +136,6 @@ export default function UploadZone({
         </div>
       </div>
 
-      {/* Structured Sample Datasets Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <HelpCircle className="w-4 h-4 text-slate-400" />
-            Немає файлу під рукою? Спробуйте готові приклади:
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {SAMPLE_DATASETS.map((sample) => (
-            <button
-              key={sample.id}
-              onClick={() => loadSampleDataset(sample.id)}
-              disabled={isLoading}
-              className="text-left p-5 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-blue-400 dark:hover:border-slate-700 hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col justify-between h-full"
-            >
-              <div className="space-y-2 mb-4">
-                <span className="text-base font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-500 transition-colors">
-                  {sample.title}
-                </span>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
-                  {sample.description}
-                </p>
-              </div>
-              <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400 border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center gap-1">
-                <span>Завантажити шаблон</span>
-                <span className="group-hover:translate-x-1 duration-200 transition-transform">→</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
