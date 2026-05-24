@@ -206,12 +206,14 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
 
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const downloadChart = useCallback(() => {
-    const svg = chartRef.current?.querySelector(".recharts-wrapper svg.recharts-surface");
-    if (!svg) return;
+  const getSvgElement = (): SVGSVGElement | null => {
+    return chartRef.current?.querySelector(".recharts-wrapper svg.recharts-surface") ?? null;
+  };
 
-    const serializer = new XMLSerializer();
-    const svgText = serializer.serializeToString(svg);
+  const downloadSvg = useCallback(() => {
+    const svg = getSvgElement();
+    if (!svg) return;
+    const svgText = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -219,6 +221,67 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
     a.download = `${summary.fileName.replace(/\.[^.]+$/, "")}_${chartType}.svg`;
     a.click();
     URL.revokeObjectURL(url);
+  }, [summary.fileName, chartType]);
+
+  const downloadPng = useCallback(() => {
+    const svg = getSvgElement();
+    if (!svg) return;
+
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    const walker = document.createTreeWalker(clone, 4, null, false);
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const styleTags = svg.querySelectorAll("style, defs");
+    styleTags.forEach(el => {
+      clone.insertBefore(el.cloneNode(true), clone.firstChild);
+    });
+
+    const inlineStyles = (el: Element) => {
+      const computed = getComputedStyle(el);
+      const style = el.getAttribute("style") || "";
+      const props = [
+        "fill", "stroke", "stroke-width", "font-size", "font-family",
+        "font-weight", "opacity", "text-anchor", "alignment-baseline",
+        "color", "letter-spacing",
+      ];
+      for (const p of props) {
+        const val = computed.getPropertyValue(p);
+        if (val && val !== "none" && !style.includes(p)) {
+          try { el.setAttribute(p, val); } catch {}
+        }
+      }
+    };
+
+    inlineStyles(clone);
+    while (walker.nextNode()) {
+      inlineStyles(walker.currentNode as Element);
+    }
+
+    const svgText = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(2, 2);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((pngBlob) => {
+        if (!pngBlob) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(pngBlob);
+        a.download = `${summary.fileName.replace(/\.[^.]+$/, "")}_${chartType}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    };
+    img.src = url;
   }, [summary.fileName, chartType]);
 
   // Derive unique series labels when grouping is active
@@ -478,14 +541,24 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
             </p>
           </div>
           {chartData.length > 0 && (
-            <button
-              onClick={downloadChart}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-blue-300 transition-all cursor-pointer"
-              title="Завантажити як SVG"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">SVG</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={downloadSvg}
+                className="shrink-0 flex items-center gap-1 px-2 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-blue-300 transition-all cursor-pointer"
+                title="Завантажити як SVG"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">SVG</span>
+              </button>
+              <button
+                onClick={downloadPng}
+                className="shrink-0 flex items-center gap-1 px-2 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:text-emerald-600 hover:border-emerald-300 transition-all cursor-pointer"
+                title="Завантажити як PNG"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">PNG</span>
+              </button>
+            </div>
           )}
         </div>
 
