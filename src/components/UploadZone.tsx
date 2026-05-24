@@ -83,7 +83,7 @@ export default function UploadZone({
           Інтерактивна <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">інформаційна панель</span>
         </h1>
         <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 max-w-xl mx-auto font-normal">
-          Перетворіть ваші CSV-таблиці на живі інтуїтивні графіки. Інтелектуальний алгоритм автоматично визначить типи колонок, а наш ШІ аналітик допоможе розкрити приховані інсайти.
+          Перетворіть ваші CSV та Excel таблиці на живі інтуїтивні графіки. Інтелектуальний алгоритм автоматично визначить типи колонок.
         </p>
       </div>
 
