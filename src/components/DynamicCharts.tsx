@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { DatasetSummary, ChartType, AggregationType } from "../types";
 import { convertExcelSerialToDate, isExcelSerial } from "../utils/csvAnalyzer";
 import {
@@ -25,7 +25,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts";
-import { BarChart3, LineChart as LineIcon, AreaChart as AreaIcon, PieChart as PieIcon, Sliders, Palette, RefreshCw, BarChart4, Calendar } from "lucide-react";
+import { BarChart3, LineChart as LineIcon, AreaChart as AreaIcon, PieChart as PieIcon, Sliders, Palette, RefreshCw, BarChart4, Calendar, Download } from "lucide-react";
 
 interface DynamicChartsProps {
   summary: DatasetSummary;
@@ -203,6 +203,41 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
       });
     }
   }, [summary.records, xAxisKey, yAxisKey, groupByKey, aggregation, dateOverrideKeys]);
+
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const downloadChartPng = useCallback(() => {
+    const svg = chartRef.current?.querySelector("svg.recharts-surface");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const rect = svg.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(2, 2);
+
+    const img = new Image();
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    img.onload = () => {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((pngBlob) => {
+        if (!pngBlob) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(pngBlob);
+        a.download = `${summary.fileName.replace(/\.[^.]+$/, "")}_${chartType}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    };
+    img.src = url;
+  }, [summary.fileName, chartType]);
 
   // Derive unique series labels when grouping is active
   const dynamicSeriesKeys = useMemo(() => {
@@ -460,16 +495,26 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
               {groupByKey && ` з розподілом на ${groupByKey}`} ({aggregation === "sum" ? "сума" : aggregation === "average" ? "середнє значення" : aggregation === "count" ? "підрахунок рядків" : "максимальне значення"}).
             </p>
           </div>
+          {chartData.length > 0 && (
+            <button
+              onClick={downloadChartPng}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:border-blue-300 transition-all cursor-pointer"
+              title="Завантажити як PNG"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">PNG</span>
+            </button>
+          )}
         </div>
 
         {/* Render area */}
-        <div className="w-full" style={{ height: 450, minHeight: 450 }}>
+        <div ref={chartRef} className="relative w-full aspect-[16/9] max-h-[500px]">
           {chartData.length === 0 ? (
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               <span className="text-xs italic">Очікування коректних даних... Оберіть вісь X та Y.</span>
             </div>
           ) : (
-            <div className="w-full h-full">
+            <div className="absolute inset-0">
             <ResponsiveContainer width="100%" height="100%">
               {(() => {
                 const CommonGrid = () => <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-10" />;
