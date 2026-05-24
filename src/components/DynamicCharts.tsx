@@ -247,14 +247,9 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
     container.appendChild(clone);
     document.body.appendChild(container);
 
-    const walker = document.createTreeWalker(clone, 4, null, false);
-    do {
-      const el = walker.currentNode as Element;
+    clone.querySelectorAll("*").forEach(el => {
       const s = getComputedStyle(el);
-      const props = [
-        "fill", "stroke", "stroke-width", "font-size", "font-family",
-        "font-weight", "opacity", "text-anchor",
-      ];
+      const props = ["fill", "stroke", "stroke-width", "font-size", "font-family", "font-weight", "opacity", "text-anchor"];
       const style = el.getAttribute("style") || "";
       for (const p of props) {
         const val = s.getPropertyValue(p);
@@ -262,7 +257,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
           try { el.setAttribute(p, val); } catch {}
         }
       }
-    } while (walker.nextNode());
+    });
 
     const svgText = new XMLSerializer().serializeToString(clone);
     document.body.removeChild(container);
@@ -572,7 +567,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
         </div>
 
         {/* Render area */}
-        <div ref={chartRef} className="relative w-full aspect-[16/9] max-h-[500px]">
+        <div ref={chartRef} className="relative w-full" style={{ height: 420, minHeight: 420 }}>
           {chartData.length === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               <span className="text-xs italic">Очікування коректних даних... Оберіть вісь X та Y.</span>
