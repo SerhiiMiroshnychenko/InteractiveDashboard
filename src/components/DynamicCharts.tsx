@@ -398,7 +398,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
       </div>
 
       {/* Main Interactive Chart Visualization Screen (Bottom - Full Width) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-5 md:p-6 flex flex-col min-h-[500px] shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-5 md:p-6 shadow-xs">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-6">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white capitalize">
@@ -412,7 +412,7 @@ export default function DynamicCharts({ summary }: DynamicChartsProps) {
         </div>
 
         {/* Render area */}
-        <div className="flex-1 w-full min-h-[300px] h-[350px]">
+        <div className="w-full h-[450px]">
           {chartData.length === 0 ? (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               <span className="text-xs italic">Очікування коректних даних... Оберіть вісь X та Y.</span>
