@@ -175,6 +175,31 @@ export function isExcelSerial(value: any): boolean {
   return value >= 40000 && value <= 60000;
 }
 
+declare const XLSX: any;
+
+export function parseExcelFile(
+  file: File
+): Promise<DatasetSummary> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null });
+        const summary = analyzeParsedData(file.name, file.size, json);
+        resolve(summary);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Не вдалося прочитати Excel файл."));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 /**
  * Parses a local CSV string utilizing PapaParse.
  */
