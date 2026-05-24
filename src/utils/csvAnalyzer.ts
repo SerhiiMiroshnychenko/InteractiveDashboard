@@ -158,6 +158,23 @@ export function analyzeParsedData(
   };
 }
 
+const EXCEL_EPOCH_OFFSET = 25569;
+
+export function convertExcelSerialToDate(serial: number): string {
+  const date = new Date((serial - EXCEL_EPOCH_OFFSET) * 86400000);
+  if (isNaN(date.getTime())) return String(serial);
+  return date.toLocaleDateString("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+export function isExcelSerial(value: any): boolean {
+  if (typeof value !== "number") return false;
+  return value >= 40000 && value <= 60000;
+}
+
 /**
  * Parses a local CSV string utilizing PapaParse.
  */
